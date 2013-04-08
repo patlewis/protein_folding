@@ -1,14 +1,16 @@
 CFLAGS=-Wall -Werror
 
-2dfold: proteins.o 2d_folding.c
-	cc -O2 proteins.c 2d_folding.c
 
-3dfold: proteins.o 3d_folding.c
-	cc -O2 proteins.c 3d_folding.c
+all: 2dfold 3dfold test
+	make 2dfold
+	make 3dfold
+	make test	
 
-proteins.o:
-	cc -c proteins.c
+2dfold: proteins.o list.o
 
-all:
-	2d
-	3d
+3dfold: proteins.o list.o
+
+test: proteins.o list.o
+
+clean:
+	rm -f *.o test 2dfold 3dfold
