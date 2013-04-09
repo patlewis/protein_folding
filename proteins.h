@@ -3,6 +3,7 @@
 
 typedef struct amino_acid {
     char name[4];           /*the amino acid's name     */
+    int hydro;              /*0 for hydrophobic, 1 for hydrophilic */
     struct list_elem elem;
 } amino_acid;
 
@@ -12,7 +13,6 @@ typedef struct amino_acid_chain{
 
 typedef struct vertex{
     amino_acid *amino;
-    bool visited;
     struct vertex *prev;
     struct vertex *next;
     //coordinates
@@ -21,7 +21,7 @@ typedef struct vertex{
 } vertex;
 
 typedef struct two_d_protein {
-    vertex structure[41][41];
+    amino_acid structure[41][41];
     double energy;
     struct list_elem *elem;
 } two_d_protein;
@@ -51,3 +51,15 @@ amino_acid_chain * create_chain(void);
  * Frees all the memory assiociated with this amino acid chain
  */
 void free_chain(amino_acid_chain *chain);
+
+/*
+ * Creates a two-dimensional protein object for ease
+ * of representation.
+ */
+two_d_protein two_d_protein_create(vertex **array, double energy);
+
+
+
+void print_protein(two_d_protein pro);
+
+void two_d_protein_free(two_d_protein *);

@@ -7,14 +7,24 @@
 /* Global variables */
     vertex skeleton[41][41];
     amino_acid_chain *chain;
+    two_d_protein *proteins;//used as an array
+    int num_proteins;
+    double min_energy;
+    double max_energy;
 
 /* Function declarations */
 void print_structure(vertex thing[41][41]);
 void DFS(int i, int j);
+double calculate_energy(void);
+void sort(void);
 
 /* This is where the fun begins */
 int main(int argc, char **argv){
+    proteins = (two_d_protein *)malloc(100 * sizeof(two_d_protein));
     chain = create_chain();
+    min_energy = 0;
+    max_energy = 0;
+    num_proteins = 0;
 
     int i,j;
     for(i=0; i < 41; i++){
@@ -25,7 +35,7 @@ int main(int argc, char **argv){
     }
     DFS(20, 20);
     print_structure(skeleton);
-    
+    free_chain(chain);    
     return 0;
 }
 
@@ -38,13 +48,30 @@ int main(int argc, char **argv){
 void DFS(int i, int j){
     //TODO: put amino acids in vertices
     //
-    if(list_empty(&chain->amino_acid_list)){
-            //do stuff to end it like:
-            //take a snapshot of the system
-            //calculate its energy
-            //if need be, save it in another list
+    if(list_empty(&chain->amino_acid_list)){//if all protein is used
+        double en = calculate_energy();
+        int i;
+        two_d_protein pro;
+        if(num_proteins < 100){
+            pro = two_d_protein_create(skeleton, en);
+            proteins[num_proteins] = pro;
+            num_proteins++;
+            sort();
             return;
+        }
+        for(i = 0; i < num_proteins; i++){
+            if (en < proteins[i].energy){   //if it belongs in arraya
+                two_d_protein_free(&(proteins[99]));
+                pro = two_d_protein_create(skeleton, en);
+                proteins[99] = pro;
+                sort();
+                return;
+            }
+        }
+        //if we got here, then it wasn't added to the array
+        return;
     }
+    
     /* Get the next amino acid to be placed into the skeleton */
     struct list_elem *e = list_pop_front(&chain->amino_acid_list);
     amino_acid *ami_aci = list_entry(e, struct amino_acid, elem);
@@ -88,6 +115,10 @@ void DFS(int i, int j){
 
 }
 
+/*
+ * Prints a 2d representation of the structure.
+ * What does it sound like it does?
+ */
 void print_structure(vertex thing[41][41]){
     int i, j;
     for(i = 0; i < 8; i++){
@@ -100,11 +131,70 @@ void print_structure(vertex thing[41][41]){
 }
 
 
+/*
+ * Calculates the energy of the completed structure.  Counts everything
+ * twice because I didn't have enough time to think of a good solution.
+ * It divides by 2 at the end to get to the right answer.  If you want 
+ * to change the values of the interactions, go ahead and do so.  I just
+ * used the energies that the other people used in their paper.
+ */
+double calculate_energy(void){
+    double energy = 0;
+    const double EHH = -2.3;
+    const double EHP = -1;
+    const double EPP = 0;
+    int i, x, y;
+    x = 20;
+    y = 20;
+    vertex current = skeleton[x][y];
+    for(i = 0; i < 20; i++){
+        x = current.x;
+        y = current.y;
+        /* Decision block for seeing if there's something we can caclulate the energy of */
+        if(skeleton[x+1][y].amino != NULL && skeleton[x+1][y].amino != *(current.next)){
+            if((current.amino).hydro && (skeleton[x+1][y].amino).hydro){ energy += EHH; continue; }
+            else if ((current.amino).hydro || (skeleton[x+1][y].amino).hydro){ energy += EHP; continue; }
+            else { energy += EPP; continue; }
+        }
+        if(skeleton[x-1][y].amino != NULL && skeleton[x-1][y].amino != *(current.next)){
+            if((current.amino).hydro && (skeleton[x-1][y].amino).hydro){ energy += EHH; continue; }
+            else if ((current.amino).hydro || (skeleton[x-1][y].amino).hydro){ energy += EHP; continue; }
+            else { energy += EPP; continue; }
+        }
+        if(skeleton[x][y+1].amino != NULL && skeleton[x][y+1].amino != *(current.next)){
+            if((current.amino).hydro && (skeleton[x][y+1].amino).hydro){ energy += EHH; continue; }
+            else if ((current.amino).hydro || (skeleton[x][y+1].amino).hydro){ energy += EHP; continue; }
+            else { energy += EPP; continue; }
+        }
+        if(skeleton[x][y-1].amino != NULL && skeleton[x][y-1].amino != *(current.next)){
+            if((current.amino).hydro && (skeleton[x][y-1].amino).hydro){ energy += EHH; continue; }
+            else if ((current.amino).hydro || (skeleton[x][y-1].amino).hydro){ energy += EHP; continue; }
+            else { energy += EPP; continue; }
+        }
+    current = *(current.next);
+    }
+    //end for loop
+    return energy/2;
+}
 
 
-
-
-
+/* Sorting algorithm based in insertion sort.
+ * Insertion sort runs in O(n) in the best case,
+ * and all of these cases are close to the best
+ * case since we're really only finding a spot
+ * for one element, so it's pretty cool.
+ */
+void sort(void){
+    int i,j;
+    for(i = 0; i < num_proteins; i++){
+        double v = proteins[i].energy;
+        for(j = i-1; j >= 0; j--){
+            if(protiens[j].energy <= v) break;
+            proteins[j+1] = proteins[j];           
+        }
+        proteins[j+1] = v;
+    }
+}
 
 
 
