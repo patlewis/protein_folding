@@ -151,24 +151,24 @@ double calculate_energy(void){
         x = current.x;
         y = current.y;
         /* Decision block for seeing if there's something we can caclulate the energy of */
-        if(skeleton[x+1][y].amino != NULL && skeleton[x+1][y].amino != *(current.next)){
-            if((current.amino).hydro && (skeleton[x+1][y].amino).hydro){ energy += EHH; continue; }
-            else if ((current.amino).hydro || (skeleton[x+1][y].amino).hydro){ energy += EHP; continue; }
+        if(skeleton[x+1][y].amino != NULL && skeleton[x+1][y].amino != (current.next)->amino){
+            if((current.amino)->hydro && (skeleton[x+1][y].amino)->hydro){ energy += EHH; continue; }
+            else if ((current.amino)->hydro || (skeleton[x+1][y].amino)->hydro){ energy += EHP; continue; }
             else { energy += EPP; continue; }
         }
-        if(skeleton[x-1][y].amino != NULL && skeleton[x-1][y].amino != *(current.next)){
-            if((current.amino).hydro && (skeleton[x-1][y].amino).hydro){ energy += EHH; continue; }
-            else if ((current.amino).hydro || (skeleton[x-1][y].amino).hydro){ energy += EHP; continue; }
+        if(skeleton[x-1][y].amino != NULL && skeleton[x-1][y].amino != (current.next)->amino){
+            if((current.amino)->hydro && (skeleton[x-1][y].amino)->hydro){ energy += EHH; continue; }
+            else if ((current.amino)->hydro || (skeleton[x-1][y].amino)->hydro){ energy += EHP; continue; }
             else { energy += EPP; continue; }
         }
-        if(skeleton[x][y+1].amino != NULL && skeleton[x][y+1].amino != *(current.next)){
-            if((current.amino).hydro && (skeleton[x][y+1].amino).hydro){ energy += EHH; continue; }
-            else if ((current.amino).hydro || (skeleton[x][y+1].amino).hydro){ energy += EHP; continue; }
+        if(skeleton[x][y+1].amino != NULL && skeleton[x][y+1].amino != (current.next)->amino){
+            if((current.amino)->hydro && (skeleton[x][y+1].amino)->hydro){ energy += EHH; continue; }
+            else if ((current.amino)->hydro || (skeleton[x][y+1].amino)->hydro){ energy += EHP; continue; }
             else { energy += EPP; continue; }
         }
-        if(skeleton[x][y-1].amino != NULL && skeleton[x][y-1].amino != *(current.next)){
-            if((current.amino).hydro && (skeleton[x][y-1].amino).hydro){ energy += EHH; continue; }
-            else if ((current.amino).hydro || (skeleton[x][y-1].amino).hydro){ energy += EHP; continue; }
+        if(skeleton[x][y-1].amino != NULL && skeleton[x][y-1].amino != (current.next)->amino){
+            if((current.amino)->hydro && (skeleton[x][y-1].amino)->hydro){ energy += EHH; continue; }
+            else if ((current.amino)->hydro || (skeleton[x][y-1].amino)->hydro){ energy += EHP; continue; }
             else { energy += EPP; continue; }
         }
     current = *(current.next);
@@ -189,10 +189,10 @@ void sort(void){
     for(i = 0; i < num_proteins; i++){
         double v = proteins[i].energy;
         for(j = i-1; j >= 0; j--){
-            if(protiens[j].energy <= v) break;
+            if(proteins[j].energy <= v) break;
             proteins[j+1] = proteins[j];           
         }
-        proteins[j+1] = v;
+        proteins[j+1].energy = v;
     }
 }
 

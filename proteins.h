@@ -1,5 +1,7 @@
 #include "list.h"
 
+#define SIZE 41
+
 
 typedef struct amino_acid {
     char name[4];           /*the amino acid's name     */
@@ -21,13 +23,13 @@ typedef struct vertex{
 } vertex;
 
 typedef struct two_d_protein {
-    amino_acid structure[41][41];
+    amino_acid structure[SIZE][SIZE];
     double energy;
     struct list_elem *elem;
 } two_d_protein;
 
 typedef struct three_d_protein {
-    vertex structure[41][41][41];
+    vertex structure[SIZE][SIZE][SIZE];
     double energy;
     struct list_elem *elem;
 } three_d_protein;
@@ -56,7 +58,7 @@ void free_chain(amino_acid_chain *chain);
  * Creates a two-dimensional protein object for ease
  * of representation.
  */
-two_d_protein two_d_protein_create(vertex **array, double energy);
+two_d_protein two_d_protein_create(struct vertex array[SIZE][SIZE], double energy);
 
 
 

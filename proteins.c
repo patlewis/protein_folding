@@ -4,6 +4,8 @@
 #include "proteins.h"
 #include "list.h"
 
+#define SIZE 41
+
 static const char *names[] = {"ALA", "ARG", "ASN", "ASP", "ASX", "CYS", "GLU", \
     "GLN", "GLX", "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"};
 
@@ -72,7 +74,7 @@ void free_chain(amino_acid_chain *chain){
     free(chain);
 }
 
-two_d_protein two_d_protein_create(vertex **array, double energy){
+two_d_protein two_d_protein_create(struct vertex array[SIZE][SIZE], double energy){
     struct two_d_protein *pro = (two_d_protein *)malloc(sizeof(two_d_protein));
     amino_acid *ac;
     int i, j;
