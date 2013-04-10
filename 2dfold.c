@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include "list.h"
 #include "proteins.h"
 
@@ -11,12 +12,15 @@
     int num_proteins;
     double min_energy;
     double max_energy;
+    unsigned long total_structures;
 
 /* Function declarations */
 void print_structure(vertex thing[41][41]);
 void DFS(int i, int j);
 double calculate_energy(void);
 void sort(void);
+void print_current_structure(void);
+static bool chain_is_finished(void);
 
 /* This is where the fun begins */
 int main(int argc, char **argv){
@@ -25,8 +29,9 @@ int main(int argc, char **argv){
     min_energy = 0;
     max_energy = 0;
     num_proteins = 0;
-
+    total_structures = 0;
     int i,j;
+
     for(i=0; i < 41; i++){
         for (j = 0; j < 41; j++){
             skeleton[i][j].x = i;
@@ -34,8 +39,13 @@ int main(int argc, char **argv){
         }
     }
     DFS(20, 20);
-    print_structure(skeleton);
+    //for(i = 0; i < 100; i++){
+    //    print_protein(proteins[i]);
+    //    free(&(proteins[i]));
+    //}
     free_chain(chain);    
+    printf("\n\n\tTotal number of structures: %lu\n\n", total_structures);
+    printf("Max number of structures we can keep track of: %lu\n", ULONG_MAX);
     return 0;
 }
 
@@ -46,89 +56,37 @@ int main(int argc, char **argv){
  * each vertex around this one.  
  */
 void DFS(int i, int j){
-    //TODO: put amino acids in vertices
-    //
-    if(list_empty(&chain->amino_acid_list)){//if all protein is used
-        double en = calculate_energy();
-        int i;
-        two_d_protein pro;
-        if(num_proteins < 100){
-            pro = two_d_protein_create(skeleton, en);
-            proteins[num_proteins] = pro;
-            num_proteins++;
-            sort();
-            return;
-        }
-        for(i = 0; i < num_proteins; i++){
-            if (en < proteins[i].energy){   //if it belongs in arraya
-                two_d_protein_free(&(proteins[99]));
-                pro = two_d_protein_create(skeleton, en);
-                proteins[99] = pro;
-                sort();
-                return;
-            }
-        }
-        //if we got here, then it wasn't added to the array
-        return;
-    }
     
     /* Get the next amino acid to be placed into the skeleton */
     struct list_elem *e = list_pop_front(&chain->amino_acid_list);
     amino_acid *ami_aci = list_entry(e, struct amino_acid, elem);
     /*Set the attributes for this part of the skeleton */
     skeleton[i][j].amino = ami_aci;
-    skeleton[i][j].next = NULL;
+    if(chain_is_finished()){
+        list_push_front(&chain->amino_acid_list,&(skeleton[i][j].amino)->elem);   //put it back on the stack/queue to be reused
+        skeleton[i][j].amino = NULL;    //remove the amino acid that used to be here
+        return;
+    }
     /* Start decision making for the next part of the chain */
-    if((i-1 >= 0) && (skeleton[i-1][j].amino == NULL)){
-        skeleton[i][j].next = &(skeleton[i-1][j]);
-        skeleton[i-1][j].prev = &(skeleton[i][j]);
+    if((i-1 >= 0) && (skeleton[i-1][j].amino == NULL)){//if "North" spot is available, go there
         DFS(i-1, j);
-        list_push_front(&chain->amino_acid_list,&(skeleton[i][j].amino)->elem);   //put it back on the stack/queue to be reused
-        skeleton[i][j].amino = NULL;    //remove the amino acid that used to be here
-        //so that other DFS searches can use this vertex
     }
-    if((j+1 <= 40) && (skeleton[i][j+1].amino == NULL)){
-        skeleton[i][j].next = &(skeleton[i][j+1]);
-        skeleton[i][j+1].prev = &(skeleton[i][j]);
+    if((j+1 <= 40) && (skeleton[i][j+1].amino == NULL)){//if "East" is available...
         DFS(i, j+1);
-        list_push_front(&chain->amino_acid_list,&(skeleton[i][j].amino)->elem);   //put it back on the stack/queue to be reused
-        skeleton[i][j].amino = NULL;    //remove the amino acid that used to be here
-        //so that other DFS searches can use this vertex
     }
-    if((i+1 <= 40) && (skeleton[i+1][j].amino == NULL)){
-        skeleton[i][j].next = &(skeleton[i+1][j]);
-        skeleton[i+1][j].prev = &(skeleton[i][j]);
+    if((i+1 <= 40) && (skeleton[i+1][j].amino == NULL)){//if "South"...
         DFS(i+1, j);
-        list_push_front(&chain->amino_acid_list,&(skeleton[i][j].amino)->elem);   //put it back on the stack/queue to be reused
-        skeleton[i][j].amino = NULL;    //remove the amino acid that used to be here
-        //so that other DFS searches can use this vertex
     }
-    if((j-1 >= 0) && (skeleton[i][j-1].amino == NULL)){
-        skeleton[i][j].next = &(skeleton[i][j-1]);
-        skeleton[i][j-1].prev = &(skeleton[i][j]);
+    if((j-1 >= 0) && (skeleton[i][j-1].amino == NULL)){//if "West"...
         DFS(i, j-1);
-        list_push_front(&chain->amino_acid_list,&(skeleton[i][j].amino)->elem);   //put it back on the stack/queue to be reused
-        skeleton[i][j].amino = NULL;    //remove the amino acid that used to be here
-        //so that other DFS searches can use this vertex
     }
+    list_push_front(&chain->amino_acid_list,&(skeleton[i][j].amino)->elem);   //put it back on the stack/queue to be reused
+    skeleton[i][j].amino = NULL;    //remove the amino acid that used to be here
+    //so that other DFS searches can use this vertex
     
 
 }
 
-/*
- * Prints a 2d representation of the structure.
- * What does it sound like it does?
- */
-void print_structure(vertex thing[41][41]){
-    int i, j;
-    for(i = 0; i < 8; i++){
-        for(j = 0; j < 8; j++){
-            printf("(%d, %d)\t", thing[i][j].x, thing[i][j].y);
-        }
-        printf("\n");
-    }
-    printf("\n\n Done.\n");
-}
 
 
 /*
@@ -198,4 +156,53 @@ void sort(void){
 
 
 
+void print_current_structure(){
+    int i, j;
+    printf("========================================================================================================================\n");
+    for(i = 0; i < 27; i++){
+        for(j = 0; j < 27; j++){
+            if(skeleton[i][j].amino == NULL) printf("    ");
+            else printf(" %s", (skeleton[i][j].amino)->name);
+        }
+        printf("\n");
+    }
+    printf("Structure number %lu\n", ++total_structures);
+    printf("========================================================================================================================\n");
+}
 
+
+/*
+ * Checks to see of there are no more amino acids left to 
+ * put in the protein.  If there are, it immediately returns
+ * false.  Otherwise, it calculates the energy of this protein
+ * structure and stores informations as necessary.
+ */
+static bool chain_is_finished(){
+    if(list_empty(&chain->amino_acid_list)){//if all protein is used
+        //print_current_structure();
+        total_structures++;
+        return true;
+        double en = calculate_energy();
+        int count;
+        two_d_protein pro;
+        if(num_proteins < 100){
+            pro = two_d_protein_create(skeleton, en);
+            proteins[num_proteins] = pro;
+            num_proteins++;
+            sort();
+            return true;
+        }
+        for(count = 0; count < num_proteins; count++){
+            if (en < proteins[count].energy){   //if it belongs in arraya
+                two_d_protein_free(&(proteins[99]));
+                pro = two_d_protein_create(skeleton, en);
+                proteins[99] = pro;
+                sort();
+                return true;
+            }
+        }
+        //if we got here, then it wasn't added to the array
+        return true;
+    }
+    else return false;
+}

@@ -101,7 +101,7 @@ void print_protein(two_d_protein pro){
     for(i = 0; i < 10; i++){
         for(j = 0; j < 10; j++){
             if(strcmp((pro.structure[i][j]).name, "") != 0){
-                printf("%s-", (pro.structure[i][j]).name);
+                printf("%s ", (pro.structure[i][j]).name);
             }
             else printf("    ");
         }
