@@ -98,8 +98,8 @@ void two_d_protein_free(two_d_protein *pro){
 
 void print_protein(two_d_protein pro){
     int i,j;
-    for(i = 10; i < 30; i++){
-        for(j = 10; j < 30; j++){
+    for(i = 0; i < 41; i++){
+        for(j = 0; j < 41; j++){
             if(strcmp((pro.structure[i][j]).name, "") != 0){
                 printf("%s ", (pro.structure[i][j]).name);
             }
@@ -110,5 +110,11 @@ void print_protein(two_d_protein pro){
     printf("Energy: %f\n\n\n", pro.energy);
 }
 
+
+
+bool less_than(two_d_protein pro1, two_d_protein pro2){
+    if (pro1.energy < pro2.energy) return true;
+    else return false;
+}
 
 

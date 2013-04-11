@@ -65,3 +65,5 @@ two_d_protein two_d_protein_create(struct vertex array[SIZE][SIZE], double energ
 void print_protein(two_d_protein pro);
 
 void two_d_protein_free(two_d_protein *);
+
+bool less_than(two_d_protein pro1, two_d_protein pro2);

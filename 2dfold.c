@@ -4,32 +4,30 @@
 #include "list.h"
 #include "proteins.h"
 
-#define NORTH 1
-#define EAST  2
-#define SOUTH 3
-#define WEST  4
-
-
-/* Global variables */
-    vertex skeleton[41][41];
-    amino_acid_chain *chain;
-    two_d_protein *proteins;//used as an array
-    int num_proteins;
-    double min_energy;
-    double max_energy;
-    unsigned long total_structures;
 
 /* Function declarations */
 void print_structure(vertex thing[41][41]);
 void DFS(int i, int j, int previous);
 double calculate_energy(void);
-void sort(void);
+int sort(const void *a, const void *b);
 void print_current_structure(void);
 static bool chain_is_finished(void);
 
+
+
+
+/* Global variables */
+    vertex skeleton[41][41];
+    amino_acid_chain *chain;
+    two_d_protein proteins[100];
+    int num_proteins;
+    double min_energy;
+    double max_energy;
+    unsigned long total_structures;
+
+
 /* This is where the fun begins */
 int main(int argc, char **argv){
-    proteins = (two_d_protein *)malloc(100 * sizeof(two_d_protein));
     chain = create_chain();
     min_energy = 0;
     max_energy = 0;
@@ -44,11 +42,11 @@ int main(int argc, char **argv){
         }
     }
     DFS(20, 20, 0);
-//    for(i = 0; i < 100; i++){
-//        printf("====================================================================================================================\n");
-//        print_protein(proteins[i]);
-//        free(&(proteins[i]));
-//    }
+    for(i = 0; i < 100; i++){
+        printf("====================================================================================================================\n");
+        print_protein(proteins[i]);
+        printf("Structure number %d\n", i+1);
+    }
     free_chain(chain);    
     printf("\n\n\tTotal number of structures: %lu\n\n", total_structures);
     printf("Max number of structures we can keep track of: %lu\n", ULONG_MAX);
@@ -235,16 +233,12 @@ double calculate_energy(void){
  * case since we're really only finding a spot
  * for one element, so it's pretty cool.
  */
-void sort(void){
-    int i,j;
-    for(i = 0; i < num_proteins; i++){
-        double v = proteins[i].energy;
-        for(j = i-1; j >= 0; j--){
-            if(proteins[j].energy <= v) break;
-            proteins[j+1] = proteins[j];           
-        }
-        proteins[j+1].energy = v;
-    }
+int sort(const void *p1, const void *p2){
+    two_d_protein *pro1 = (two_d_protein *)p1;
+    two_d_protein *pro2 = (two_d_protein *)p2;
+    if(pro1->energy < pro2->energy) return -1;
+    else if (pro2->energy < pro1->energy) return 1;
+    else return 0;
 }
 
 
@@ -276,30 +270,20 @@ static bool chain_is_finished(){
     if(list_empty(&chain->amino_acid_list)){//if all protein is used
         total_structures++;
         double energy = calculate_energy();
-        //int count;
-        two_d_protein pro = two_d_protein_create(skeleton, energy);
-        printf("=====================================================================================================================\n");
-        print_protein(pro);
+        int count;
+        if(num_proteins < 100){
+            proteins[num_proteins++] = two_d_protein_create(skeleton, energy);
+            return true;
+        }
+        for(count = 0; count < 100; count++){
+            if (energy < proteins[count].energy){   //if it belongs in array
+                proteins[99] = two_d_protein_create(skeleton, energy);
+                qsort(proteins, 100, sizeof(two_d_protein), sort);
+                return true;
+            }
+        }
+        //if we got here, then it wasn't added to the array
         return true;
-//        if(num_proteins < 100){
-//            pro = two_d_protein_create(skeleton, energy);
-//            proteins[num_proteins] = pro;
-//            num_proteins++;
-//            sort();
-//            return true;
-//        }
-//        for(count = 0; count < num_proteins; count++){
-//            if (energy < proteins[count].energy){   //if it belongs in array
-//                if(num_proteins >= 100) two_d_protein_free(&(proteins[99]));
-//                else two_d_protein_free(&(proteins[num_proteins-1]));
-//                pro = two_d_protein_create(skeleton, energy);
-//                proteins[99] = pro;
-//                sort();
-//                return true;
-//            }
-//        }
-//        //if we got here, then it wasn't added to the array
-//        return true;
     }
     else return false;
 }
