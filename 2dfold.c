@@ -4,6 +4,11 @@
 #include "list.h"
 #include "proteins.h"
 
+#define NORTH 1
+#define EAST  2
+#define SOUTH 3
+#define WEST  4
+
 
 /* Global variables */
     vertex skeleton[41][41];
@@ -16,7 +21,7 @@
 
 /* Function declarations */
 void print_structure(vertex thing[41][41]);
-void DFS(int i, int j);
+void DFS(int i, int j, int previous);
 double calculate_energy(void);
 void sort(void);
 void print_current_structure(void);
@@ -38,11 +43,12 @@ int main(int argc, char **argv){
             skeleton[i][j].y = j;
         }
     }
-    DFS(20, 20);
-    //for(i = 0; i < 100; i++){
-    //    print_protein(proteins[i]);
-    //    free(&(proteins[i]));
-    //}
+    DFS(20, 20, 0);
+//    for(i = 0; i < 100; i++){
+//        printf("====================================================================================================================\n");
+//        print_protein(proteins[i]);
+//        free(&(proteins[i]));
+//    }
     free_chain(chain);    
     printf("\n\n\tTotal number of structures: %lu\n\n", total_structures);
     printf("Max number of structures we can keep track of: %lu\n", ULONG_MAX);
@@ -55,34 +61,50 @@ int main(int argc, char **argv){
  * "vertex" and recursively does a depth-first search on 
  * each vertex around this one.  
  */
-void DFS(int i, int j){
+void DFS(int i, int j, int prev){
     
     /* Get the next amino acid to be placed into the skeleton */
     struct list_elem *e = list_pop_front(&chain->amino_acid_list);
     amino_acid *ami_aci = list_entry(e, struct amino_acid, elem);
     /*Set the attributes for this part of the skeleton */
     skeleton[i][j].amino = ami_aci;
+    skeleton[i][j].next = NULL;
+    //see if stop condition reached
     if(chain_is_finished()){
         list_push_front(&chain->amino_acid_list,&(skeleton[i][j].amino)->elem);   //put it back on the stack/queue to be reused
         skeleton[i][j].amino = NULL;    //remove the amino acid that used to be here
+        skeleton[i][j].next = NULL;
         return;
     }
     /* Start decision making for the next part of the chain */
     if((i-1 >= 0) && (skeleton[i-1][j].amino == NULL)){//if "North" spot is available, go there
-        DFS(i-1, j);
+        skeleton[i][j].next = &(skeleton[i-1][j]);
+        skeleton[i-1][j].prev = &(skeleton[i][j]);
+        DFS(i-1, j, 1);
+        skeleton[i][j].next = NULL;
     }
     if((j+1 <= 40) && (skeleton[i][j+1].amino == NULL)){//if "East" is available...
-        DFS(i, j+1);
+        skeleton[i][j].next = &(skeleton[i][j+1]);
+        skeleton[i][j+1].prev = &(skeleton[i][j]);
+        DFS(i, j+1, 2);
+        skeleton[i][j].next = NULL;
     }
     if((i+1 <= 40) && (skeleton[i+1][j].amino == NULL)){//if "South"...
-        DFS(i+1, j);
+        skeleton[i][j].next = &(skeleton[i+1][j]);
+        skeleton[i+1][j].prev = &(skeleton[i][j]);
+        DFS(i+1, j, 3);
+        skeleton[i][j].next = NULL;
     }
     if((j-1 >= 0) && (skeleton[i][j-1].amino == NULL)){//if "West"...
-        DFS(i, j-1);
+        skeleton[i][j].next = &(skeleton[i][j-1]);
+        skeleton[i][j-1].prev = &(skeleton[i][j]);
+        DFS(i, j-1, 4);
+        skeleton[i][j].next = NULL;
     }
+    //once this node has no more branches to make:
     list_push_front(&chain->amino_acid_list,&(skeleton[i][j].amino)->elem);   //put it back on the stack/queue to be reused
     skeleton[i][j].amino = NULL;    //remove the amino acid that used to be here
-    //so that other DFS searches can use this vertex
+                                    //so that other DFS searches can use this vertex
     
 
 }
@@ -98,40 +120,111 @@ void DFS(int i, int j){
  */
 double calculate_energy(void){
     double energy = 0;
-    const double EHH = -2.3;
-    const double EHP = -1;
-    const double EPP = 0;
+    static const double EHH = -2.3;
+    static const double EHP = -1;
+    static const double EPP = 0;
     int i, x, y;
     x = 20;
     y = 20;
     vertex current = skeleton[x][y];
-    for(i = 0; i < 20; i++){
+    for(i = 0; i < 5; i++){
         x = current.x;
         y = current.y;
-        /* Decision block for seeing if there's something we can caclulate the energy of */
-        if(skeleton[x+1][y].amino != NULL && skeleton[x+1][y].amino != (current.next)->amino){
-            if((current.amino)->hydro && (skeleton[x+1][y].amino)->hydro){ energy += EHH; continue; }
-            else if ((current.amino)->hydro || (skeleton[x+1][y].amino)->hydro){ energy += EHP; continue; }
-            else { energy += EPP; continue; }
+        vertex *nxt = current.next;
+        vertex *prv = current.prev;
+        /* Decision blocks for seeing if there's something we can caclulate the energy of */
+        if(nxt == NULL){
+            //If amino acid to the "south" and it is not directly "next to" in the original chain
+            if(skeleton[x+1][y].amino != NULL && skeleton[x+1][y].amino != prv->amino){
+                if((current.amino)->hydro && (skeleton[x+1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x+1][y].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               }  //if both hydrophobic
+            }
+            //If amino acid to the "north" and it is not directly "next to" in the original chain
+            if(skeleton[x-1][y].amino != NULL && skeleton[x-1][y].amino != prv->amino){
+                if((current.amino)->hydro && (skeleton[x-1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x-1][y].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               } //if both hydrophobic    
+            }
+            //If amino acid to the "east" and it is not directly "next to" in the original chain
+            if(skeleton[x][y+1].amino != NULL && skeleton[x][y+1].amino != prv->amino){
+                if((current.amino)->hydro && (skeleton[x][y+1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x][y+1].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               }  //if both hydrophobic          
+            }
+            //If amino acid to the "west" and it is not directly "next to" in the original chain
+            if(skeleton[x][y-1].amino != NULL && skeleton[x][y-1].amino != prv->amino){
+                if((current.amino)->hydro && (skeleton[x][y-1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x][y-1].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               }  //if both hydrophobic
+            }
+            continue; //if this is the last one in the chain
         }
-        if(skeleton[x-1][y].amino != NULL && skeleton[x-1][y].amino != (current.next)->amino){
-            if((current.amino)->hydro && (skeleton[x-1][y].amino)->hydro){ energy += EHH; continue; }
-            else if ((current.amino)->hydro || (skeleton[x-1][y].amino)->hydro){ energy += EHP; continue; }
-            else { energy += EPP; continue; }
+        //If there is no "previous" link
+        if(prv == NULL)
+        {
+            //If amino acid to the "south" and it is not directly "next to" in the original chain
+            if(skeleton[x+1][y].amino != NULL && skeleton[x+1][y].amino != nxt->amino){
+                if((current.amino)->hydro && (skeleton[x+1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x+1][y].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               }  //if both hydrophobic
+            }
+            //If amino acid to the "north" and it is not directly "next to" in the original chain
+            if(skeleton[x-1][y].amino != NULL && skeleton[x-1][y].amino != nxt->amino){
+                if((current.amino)->hydro && (skeleton[x-1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x-1][y].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               } //if both hydrophobic    
+            }
+            //If amino acid to the "east" and it is not directly "next to" in the original chain
+            if(skeleton[x][y+1].amino != NULL && skeleton[x][y+1].amino != nxt->amino){
+                if((current.amino)->hydro && (skeleton[x][y+1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x][y+1].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               }  //if both hydrophobic          
+            }
+            //If amino acid to the "west" and it is not directly "next to" in the original chain
+            if(skeleton[x][y-1].amino != NULL && skeleton[x][y-1].amino != nxt->amino){
+                if((current.amino)->hydro && (skeleton[x][y-1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x][y-1].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               }  //if both hydrophobic
+            }
+            current = *(current.next);
+            continue;
         }
-        if(skeleton[x][y+1].amino != NULL && skeleton[x][y+1].amino != (current.next)->amino){
-            if((current.amino)->hydro && (skeleton[x][y+1].amino)->hydro){ energy += EHH; continue; }
-            else if ((current.amino)->hydro || (skeleton[x][y+1].amino)->hydro){ energy += EHP; continue; }
-            else { energy += EPP; continue; }
+        //If there is a "previous" link we can check then we do this:
+        //If amino acid to the "south" and it is not directly "next to" in the original chain
+        if(skeleton[x+1][y].amino != NULL && \
+            skeleton[x+1][y].amino != nxt->amino && \
+            skeleton[x+1][y].amino != prv->amino){
+                if((current.amino)->hydro && (skeleton[x+1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x+1][y].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               }  //if both hydrophobic 
         }
-        if(skeleton[x][y-1].amino != NULL && skeleton[x][y-1].amino != (current.next)->amino){
-            if((current.amino)->hydro && (skeleton[x][y-1].amino)->hydro){ energy += EHH; continue; }
-            else if ((current.amino)->hydro || (skeleton[x][y-1].amino)->hydro){ energy += EHP; continue; }
-            else { energy += EPP; continue; }
+        //If amino acid to the "north" and it is not directly "next to" in the original chain
+        if(skeleton[x-1][y].amino != NULL && \
+            skeleton[x-1][y].amino != nxt->amino && \
+            skeleton[x-1][y].amino != prv->amino){
+                if((current.amino)->hydro && (skeleton[x-1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x-1][y].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               } //if both hydrophobic
         }
-    current = *(current.next);
-    }
-    //end for loop
+        //If amino acid to the "east" and it is not directly "next to" in the original chain
+        if(skeleton[x][y+1].amino != NULL && \
+            skeleton[x][y+1].amino != nxt->amino && \
+            skeleton[x][y+1].amino != prv->amino){
+                if((current.amino)->hydro && (skeleton[x][y+1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x][y+1].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               }  //if both hydrophobic
+        }
+        //If amino acid to the "west" and it is not directly "next to" in the original chain
+        if(skeleton[x][y-1].amino != NULL && \
+            skeleton[x][y-1].amino != nxt->amino && \
+            skeleton[x][y-1].amino != prv->amino){
+                if((current.amino)->hydro && (skeleton[x][y-1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                else if ((current.amino)->hydro || (skeleton[x][y-1].amino)->hydro){ energy += EHP;}  // if different types
+                else{ energy += EPP;                                                               }  //if both hydrophobic
+        }
+        current = *(current.next);
+    } //end for loop
     return energy/2;
 }
 
@@ -155,7 +248,9 @@ void sort(void){
 }
 
 
-
+/*
+ * For debugging purposes only.
+ */
 void print_current_structure(){
     int i, j;
     printf("========================================================================================================================\n");
@@ -179,30 +274,32 @@ void print_current_structure(){
  */
 static bool chain_is_finished(){
     if(list_empty(&chain->amino_acid_list)){//if all protein is used
-        //print_current_structure();
         total_structures++;
+        double energy = calculate_energy();
+        //int count;
+        two_d_protein pro = two_d_protein_create(skeleton, energy);
+        printf("=====================================================================================================================\n");
+        print_protein(pro);
         return true;
-        double en = calculate_energy();
-        int count;
-        two_d_protein pro;
-        if(num_proteins < 100){
-            pro = two_d_protein_create(skeleton, en);
-            proteins[num_proteins] = pro;
-            num_proteins++;
-            sort();
-            return true;
-        }
-        for(count = 0; count < num_proteins; count++){
-            if (en < proteins[count].energy){   //if it belongs in arraya
-                two_d_protein_free(&(proteins[99]));
-                pro = two_d_protein_create(skeleton, en);
-                proteins[99] = pro;
-                sort();
-                return true;
-            }
-        }
-        //if we got here, then it wasn't added to the array
-        return true;
+//        if(num_proteins < 100){
+//            pro = two_d_protein_create(skeleton, energy);
+//            proteins[num_proteins] = pro;
+//            num_proteins++;
+//            sort();
+//            return true;
+//        }
+//        for(count = 0; count < num_proteins; count++){
+//            if (energy < proteins[count].energy){   //if it belongs in array
+//                if(num_proteins >= 100) two_d_protein_free(&(proteins[99]));
+//                else two_d_protein_free(&(proteins[num_proteins-1]));
+//                pro = two_d_protein_create(skeleton, energy);
+//                proteins[99] = pro;
+//                sort();
+//                return true;
+//            }
+//        }
+//        //if we got here, then it wasn't added to the array
+//        return true;
     }
     else return false;
 }
