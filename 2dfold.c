@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <string.h>
+
+
 #include "list.h"
 #include "proteins.h"
 
+#define MAX_PROTEINS 10
 
 /* Function declarations */
 void print_structure(vertex thing[41][41]);
@@ -19,16 +23,18 @@ static bool chain_is_finished(void);
 /* Global variables */
     vertex skeleton[41][41];
     amino_acid_chain *chain;
-    two_d_protein proteins[100];
+    two_d_protein proteins[MAX_PROTEINS];
     int num_proteins;
     double min_energy;
     double max_energy;
     unsigned long total_structures;
+    size_t protein_size;
 
 
 /* This is where the fun begins */
 int main(int argc, char **argv){
     chain = create_chain();
+    protein_size = list_size(&chain->amino_acid_list);
     min_energy = 0;
     max_energy = 0;
     num_proteins = 0;
@@ -42,14 +48,15 @@ int main(int argc, char **argv){
         }
     }
     DFS(20, 20, 0);
-    for(i = 0; i < 100; i++){
+    for(i = 0; i < MAX_PROTEINS; i++){
+//        printf("Printing...\n");
         printf("====================================================================================================================\n");
-        print_protein(proteins[i]);
+        print_protein(proteins[i], (int)protein_size);
         printf("Structure number %d\n", i+1);
     }
     free_chain(chain);    
     printf("\n\n\tTotal number of structures: %lu\n\n", total_structures);
-    printf("Max number of structures we can keep track of: %lu\n", ULONG_MAX);
+  //  printf("Max number of structures we can keep track of: %lu\n", ULONG_MAX);
     return 0;
 }
 
@@ -121,38 +128,56 @@ double calculate_energy(void){
     static const double EHH = -2.3;
     static const double EHP = -1;
     static const double EPP = 0;
+    static const double SPECIAL = -3.5; //for ARG and ASP
     int i, x, y;
     x = 20;
     y = 20;
     vertex current = skeleton[x][y];
-    for(i = 0; i < 5; i++){
+    for(i = 0; i < protein_size; i++){
         x = current.x;
         y = current.y;
         vertex *nxt = current.next;
         vertex *prv = current.prev;
+        char *cname = (current.amino)->name;
         /* Decision blocks for seeing if there's something we can caclulate the energy of */
-        if(nxt == NULL){
+        if(nxt == NULL){ //last block in the chain
             //If amino acid to the "south" and it is not directly "next to" in the original chain
             if(skeleton[x+1][y].amino != NULL && skeleton[x+1][y].amino != prv->amino){
-                if((current.amino)->hydro && (skeleton[x+1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x+1][y].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x+1][y].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x+1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x+1][y].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               }  //if both hydrophobic
             }
             //If amino acid to the "north" and it is not directly "next to" in the original chain
             if(skeleton[x-1][y].amino != NULL && skeleton[x-1][y].amino != prv->amino){
-                if((current.amino)->hydro && (skeleton[x-1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x-1][y].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x-1][y].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x-1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x-1][y].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               } //if both hydrophobic    
             }
             //If amino acid to the "east" and it is not directly "next to" in the original chain
             if(skeleton[x][y+1].amino != NULL && skeleton[x][y+1].amino != prv->amino){
-                if((current.amino)->hydro && (skeleton[x][y+1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x][y+1].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x][y+1].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x][y+1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x][y+1].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               }  //if both hydrophobic          
             }
             //If amino acid to the "west" and it is not directly "next to" in the original chain
             if(skeleton[x][y-1].amino != NULL && skeleton[x][y-1].amino != prv->amino){
-                if((current.amino)->hydro && (skeleton[x][y-1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x][y-1].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x][y-1].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x][y-1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x][y-1].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               }  //if both hydrophobic
             }
@@ -163,25 +188,41 @@ double calculate_energy(void){
         {
             //If amino acid to the "south" and it is not directly "next to" in the original chain
             if(skeleton[x+1][y].amino != NULL && skeleton[x+1][y].amino != nxt->amino){
-                if((current.amino)->hydro && (skeleton[x+1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x+1][y].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x+1][y].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x+1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x+1][y].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               }  //if both hydrophobic
             }
             //If amino acid to the "north" and it is not directly "next to" in the original chain
             if(skeleton[x-1][y].amino != NULL && skeleton[x-1][y].amino != nxt->amino){
-                if((current.amino)->hydro && (skeleton[x-1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x-1][y].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x-1][y].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x-1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x-1][y].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               } //if both hydrophobic    
             }
             //If amino acid to the "east" and it is not directly "next to" in the original chain
             if(skeleton[x][y+1].amino != NULL && skeleton[x][y+1].amino != nxt->amino){
-                if((current.amino)->hydro && (skeleton[x][y+1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x][y+1].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x][y+1].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x][y+1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x][y+1].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               }  //if both hydrophobic          
             }
             //If amino acid to the "west" and it is not directly "next to" in the original chain
             if(skeleton[x][y-1].amino != NULL && skeleton[x][y-1].amino != nxt->amino){
-                if((current.amino)->hydro && (skeleton[x][y-1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x][y-1].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x][y-1].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x][y-1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x][y-1].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               }  //if both hydrophobic
             }
@@ -193,7 +234,11 @@ double calculate_energy(void){
         if(skeleton[x+1][y].amino != NULL && \
             skeleton[x+1][y].amino != nxt->amino && \
             skeleton[x+1][y].amino != prv->amino){
-                if((current.amino)->hydro && (skeleton[x+1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x+1][y].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x+1][y].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x+1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x+1][y].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               }  //if both hydrophobic 
         }
@@ -201,7 +246,11 @@ double calculate_energy(void){
         if(skeleton[x-1][y].amino != NULL && \
             skeleton[x-1][y].amino != nxt->amino && \
             skeleton[x-1][y].amino != prv->amino){
-                if((current.amino)->hydro && (skeleton[x-1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x-1][y].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x-1][y].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x-1][y].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x-1][y].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               } //if both hydrophobic
         }
@@ -209,7 +258,11 @@ double calculate_energy(void){
         if(skeleton[x][y+1].amino != NULL && \
             skeleton[x][y+1].amino != nxt->amino && \
             skeleton[x][y+1].amino != prv->amino){
-                if((current.amino)->hydro && (skeleton[x][y+1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x][y+1].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x][y+1].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x][y+1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x][y+1].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               }  //if both hydrophobic
         }
@@ -217,7 +270,11 @@ double calculate_energy(void){
         if(skeleton[x][y-1].amino != NULL && \
             skeleton[x][y-1].amino != nxt->amino && \
             skeleton[x][y-1].amino != prv->amino){
-                if((current.amino)->hydro && (skeleton[x][y-1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
+                if(strcmp(cname, "ARG") == 0 && strcmp((skeleton[x][y-1].amino)->name, "ASP") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if(strcmp(cname, "ASP") == 0 && strcmp((skeleton[x][y-1].amino)->name, "ARG") == 0)
+                {energy += SPECIAL;} //if special pair
+                else if((current.amino)->hydro && (skeleton[x][y-1].amino)->hydro){ energy += EHH;      }  //if both hydrophilic
                 else if ((current.amino)->hydro || (skeleton[x][y-1].amino)->hydro){ energy += EHP;}  // if different types
                 else{ energy += EPP;                                                               }  //if both hydrophobic
         }
@@ -271,14 +328,15 @@ static bool chain_is_finished(){
         total_structures++;
         double energy = calculate_energy();
         int count;
-        if(num_proteins < 100){
+        if(num_proteins < MAX_PROTEINS){
             proteins[num_proteins++] = two_d_protein_create(skeleton, energy);
+//            print_protein(proteins[num_proteins-1]);
             return true;
         }
-        for(count = 0; count < 100; count++){
+        for(count = 0; count < MAX_PROTEINS; count++){
             if (energy < proteins[count].energy){   //if it belongs in array
-                proteins[99] = two_d_protein_create(skeleton, energy);
-                qsort(proteins, 100, sizeof(two_d_protein), sort);
+                proteins[MAX_PROTEINS-1] = two_d_protein_create(skeleton, energy);
+                qsort(proteins, MAX_PROTEINS, sizeof(two_d_protein), sort);
                 return true;
             }
         }
