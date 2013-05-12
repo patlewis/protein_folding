@@ -7,7 +7,7 @@
 #define SIZE 41
 
 static const char *names[] =  {"ALA","ARG","ASN","ASP","ASX","CYS","GLU","GLN", \
-    "GLX","GLY","HIS","ILE","LEU","LYS","MET","PHE","PRO","SER","TYR","TRP"};
+    "GLX","GLY","HIS","ILE","LEU","LYS","MET","PHE","PRO","SER", "THR", "TYR","TRP", "VAL"};
 
 static const char *philic[] = {"ASN", "ARG", "ASP", "LYS", "GLU", "GLN", "SER" };
 
@@ -103,11 +103,47 @@ two_d_protein two_d_protein_create(struct vertex array[SIZE][SIZE], double energ
 }
 
 
+three_d_protein three_d_protein_create(struct vertex array[SIZE][SIZE][SIZE], double energy){
+    three_d_protein *pro = (three_d_protein *)malloc(sizeof(three_d_protein));
+    list_init(&pro->am_ac_list);
+    vertex current = array[20][20][20];
+    amino_acid *acid = current.amino;
+    while(current.next != NULL){ //does NOT add last amino acid to chain
+        //printf("current.amino = %s\n", acid->name);
+        //create an amino acid
+        amino_acid *ac = new_amino_acid(acid->name);
+        ac->x = current.x;
+        ac->y = current.y;
+        ac->z = current.z;
+        //add it to the list
+        list_push_back(&pro->am_ac_list, &ac->elem);
+        //set up next iteration
+        current = *(current.next);
+        acid = current.amino;
+    }
+    //add last amino acid
+    amino_acid *ac = new_amino_acid(acid->name);
+    ac->x = current.x;
+    ac->y = current.y;
+    ac->z = current.z;
+    //add it to the list
+    list_push_back(&pro->am_ac_list, &ac->elem);
+    pro->energy = energy;
+    return *pro;
+}
+
+
 void two_d_protein_free(two_d_protein *pro){
     if(pro != NULL) free(pro);
 }
 
-void print_protein(two_d_protein pro, int max){
+
+void three_d_protein_free(three_d_protein *pro){
+    if(pro != NULL) free(pro);
+}
+
+
+void print_protein_2(two_d_protein pro, int max){
     amino_acid *acid;
     struct list_elem *e;
     //char **pnames = (char**) malloc(4*20);//list of names
@@ -131,6 +167,30 @@ void print_protein(two_d_protein pro, int max){
     printf("Energy: %f\n\n\n", pro.energy);
 }
 
+
+void print_protein_3(three_d_protein pro, int max){
+    amino_acid *acid;
+    struct list_elem *e;
+    //char **pnames = (char**) malloc(4*20);//list of names
+    int i = 0;
+    printf("Coordinates: {");
+    for(e = list_begin(&(pro.am_ac_list)); e != list_end(&(pro.am_ac_list)) && i < max; e = list_next(e)){
+        acid = list_entry(e, struct amino_acid, elem);
+        printf("{%d,%d,%d}", acid->x, acid->y, acid->z); 
+      //  *(names + i) = acid->name;
+        i++;
+        if(i < max) printf(",");
+    }
+    printf("}\n");    
+    //print all except last
+    //printf("Names: {");
+    //for(i = 0; i < max; i++){
+    //    printf("\"%s\"", *(pnames+i));
+    //   if(i < (max-1)) printf(",");
+    //}
+    //printf("}\n");
+    printf("Energy: %f\n\n\n", pro.energy);
+}
 /* DEPRECATED-this structure no longer supported
 void print_protein(two_d_protein pro){
     amino_acid current = pro.structure[20][20];
@@ -144,11 +204,4 @@ void print_protein(two_d_protein pro){
 
 }
 */
-
-
-bool less_than(two_d_protein pro1, two_d_protein pro2){
-    if (pro1.energy < pro2.energy) return true;
-    else return false;
-}
-
 

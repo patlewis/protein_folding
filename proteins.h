@@ -8,10 +8,11 @@ typedef struct amino_acid {
     int hydro;              /*0 for hydrophobic, 1 for hydrophilic */
     int x;  //coordinates in the lattice
     int y;
+    int z;
     struct list_elem elem;
-    struct amino_acid *next;//for printing purposes
 } amino_acid;
 
+/* Wrapper for an amino acid list. */
 typedef struct amino_acid_chain{
     struct list amino_acid_list;
 } amino_acid_chain;
@@ -23,6 +24,7 @@ typedef struct vertex{
     //coordinates
     int x;
     int y;
+    int z;//for the 3d model
 } vertex;
 
 typedef struct two_d_protein {
@@ -32,7 +34,7 @@ typedef struct two_d_protein {
 } two_d_protein;
 
 typedef struct three_d_protein {
-    vertex structure[SIZE][SIZE][SIZE];
+    struct list am_ac_list;
     double energy;
     struct list_elem *elem;
 } three_d_protein;
@@ -63,6 +65,12 @@ void free_chain(amino_acid_chain *chain);
  */
 two_d_protein two_d_protein_create(struct vertex array[SIZE][SIZE], double energy);
 
+/*
+ * Creates a three-dimensional protein object for ease
+ * of representation.
+ */
+three_d_protein three_d_protein_create(struct vertex array[SIZE][SIZE][SIZE], double energy);
+
 
 /*
  * Prints out a text-based representation of the protein structure.  At this 
@@ -70,13 +78,18 @@ two_d_protein two_d_protein_create(struct vertex array[SIZE][SIZE], double energ
  * Has to take a maximum size as a parameter because for some reason the 
  * lists are a little funky
  */
-void print_protein(two_d_protein pro, int max);
+void print_protein_2(two_d_protein pro, int max);
+
+/*
+ * Prints out a text-based representation of the protein structure.  At this 
+ * point in time, it's a list of coordinates for each amino acid.
+ * Has to take a maximum size as a parameter because for some reason the 
+ * lists are a little funky
+ */
+void print_protein_3(three_d_protein pro, int max);
 
 /*
  * Frees all the memory associated with a protein structure
  */
 void two_d_protein_free(two_d_protein *);
-/*
- * Used to sort protein structures for qsort
- */
-bool less_than(two_d_protein pro1, two_d_protein pro2);
+

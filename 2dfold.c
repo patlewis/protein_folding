@@ -51,7 +51,7 @@ int main(int argc, char **argv){
     for(i = 0; i < MAX_PROTEINS; i++){
 //        printf("Printing...\n");
         printf("====================================================================================================================\n");
-        print_protein(proteins[i], (int)protein_size);
+        print_protein_2(proteins[i], (int)protein_size);
         printf("Structure number %d\n", i+1);
     }
     free_chain(chain);    
@@ -330,7 +330,7 @@ static bool chain_is_finished(){
         int count;
         if(num_proteins < MAX_PROTEINS){
             proteins[num_proteins++] = two_d_protein_create(skeleton, energy);
-//            print_protein(proteins[num_proteins-1]);
+//            print_protein_2(proteins[num_proteins-1]);
             return true;
         }
         for(count = 0; count < MAX_PROTEINS; count++){
